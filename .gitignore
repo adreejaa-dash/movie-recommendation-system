@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environments
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime-generated files
+ratings.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Data files — tmdb_5000_credits.csv is ~38MB (exceeds recommended 50MB threshold for some git hosts)
+# Download from: https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata
+# Place both files in data/ before running the app.
+data/tmdb_5000_credits.csv
+
+# Streamlit cache
+.streamlit/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
