@@ -30,32 +30,6 @@ Recommending movies users will actually enjoy is a core challenge in information
 
 ---
 
-## Screenshots
-
-**Hero + Selected Movie** — search for any of 4,803 films; the selected movie card shows genres, director, cast and overview.
-
-![Hero — The Dark Knight selected](docs/screenshot_hero.png)
-
----
-
-**Content-Based Recommendations (TF-IDF)** — top 10 matches ranked by cosine similarity. Each card shows the similarity score and "why recommended" chips (shared director 🎬, genre 🏷, cast 🎭).
-
-![Content-Based Recommendations for The Dark Knight](docs/screenshot_recommendations.png)
-
----
-
-**Collaborative Filtering** — "Users who liked this also liked…" panel driven by item-based cosine similarity on a simulated ratings matrix.
-
-![Collaborative Filtering results](docs/screenshot_collab.png)
-
----
-
-**Sidebar — Settings & My Ratings** — switch vectorization method, adjust result count, and see your personal rating history which re-ranks future recommendations.
-
-![Settings sidebar and My Ratings table](docs/screenshot_ratings.png)
-
----
-
 ## Architecture
 
 ```
