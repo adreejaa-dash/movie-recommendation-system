@@ -335,18 +335,22 @@ with col_search:
         key="search_input",
     )
 
-# Filter titles based on search
+# Filter titles based on search; compute default index pointing to a recognizable movie
+DEFAULT_MOVIE = "The Hangover"
 all_titles = sorted(df["title"].tolist())
 if search_query:
     filtered = [t for t in all_titles if search_query.lower() in t.lower()]
     if not filtered:
         filtered = all_titles
+    default_idx = 0
 else:
     filtered = all_titles
+    default_idx = filtered.index(DEFAULT_MOVIE) if DEFAULT_MOVIE in filtered else 0
 
 selected_movie = st.selectbox(
     "Select Movie",
     filtered,
+    index=default_idx,
     label_visibility="collapsed",
     key="movie_select",
 )
