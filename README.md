@@ -100,7 +100,7 @@ This biases cosine similarity toward shared director/genre/cast — the stronges
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/YOUR_USERNAME/movie-recommendation-system.git
+git clone https://github.com/adreejaa-dash/movie-recommendation-system.git
 cd movie-recommendation-system
 ```
 
