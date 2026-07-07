@@ -4,13 +4,9 @@ Run: streamlit run app.py
 """
 
 import os
-import io
-import json
-import requests
 import numpy as np
 import pandas as pd
 import streamlit as st
-from PIL import Image
 
 # Load .env file if present (safe no-op if python-dotenv not installed)
 try:
@@ -22,15 +18,6 @@ except ImportError:
 from data_preprocessing import load_and_clean
 from recommender import build_content_recommender, simulate_collab_recommender
 from ratings_store import save_rating, get_ratings, build_user_profile
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Config / constants
-# ──────────────────────────────────────────────────────────────────────────────
-
-TMDB_API_KEY = os.getenv("TMDB_API_KEY", "")   # set env var for real posters
-TMDB_IMG_BASE = "https://image.tmdb.org/t/p/w300"
-TMDB_SEARCH_URL = "https://api.themoviedb.org/3/search/movie"
-PLACEHOLDER_COLOR = "#1a1a2e"
 
 st.set_page_config(
     page_title="CineMatch — AI Movie Recommender",
@@ -198,41 +185,7 @@ def get_collab_rec():
 # Poster fetching
 # ──────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(show_spinner=False, ttl=86400)
-def fetch_poster_url(title: str) -> str | None:
-    if not TMDB_API_KEY:
-        return None
-    try:
-        r = requests.get(
-            TMDB_SEARCH_URL,
-            params={"api_key": TMDB_API_KEY, "query": title},
-            timeout=5,
-        )
-        data = r.json().get("results", [])
-        if data and data[0].get("poster_path"):
-            return TMDB_IMG_BASE + data[0]["poster_path"]
-    except Exception:
-        pass
-    return None
-
-
-def poster_html(title: str, width: int = 120) -> str:
-    """Return an <img> tag or a styled placeholder div."""
-    url = fetch_poster_url(title)
-    if url:
-        return f'<img src="{url}" width="{width}" style="border-radius:10px;">'
-    # Placeholder with gradient + movie icon
-    initials = "".join(w[0].upper() for w in title.split()[:2])
-    return f"""
-    <div style="
-        width:{width}px; height:{int(width*1.5)}px;
-        background:linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95);
-        border-radius:10px; display:flex; align-items:center;
-        justify-content:center; font-size:1.8rem; font-weight:900;
-        color:rgba(255,255,255,.7); user-select:none;
-        border:1px solid rgba(99,102,241,.3);">
-        {initials}
-    </div>"""
+# poster_html removed — tmdb_5000_movies.csv has no poster_path column
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -260,49 +213,43 @@ def stars(rating: float) -> str:
 
 
 def render_movie_card(row: pd.Series, card_id: str, show_rating_widget: bool = True):
-    with st.container():
-        col_img, col_info = st.columns([1, 4])
-        with col_img:
-            st.markdown(poster_html(row["title"]), unsafe_allow_html=True)
-        with col_info:
-            genres_html = " ".join(
-                f'<span class="genre-tag">{g}</span>'
-                for g in (row.get("genres") or [])[:4]
+    genres_html = " ".join(
+        f'<span class="genre-tag">{g}</span>'
+        for g in (row.get("genres") or [])[:4]
+    )
+    sim = row.get("similarity", row.get("cf_similarity", 0))
+    sim_label = f"{sim:.0%}" if sim > 0 else ""
+    badge_class = "sim-badge" if "similarity" in row else "cf-badge"
+    why_html = render_why(row["why"]) if "why" in row and row["why"] else ""
+
+    st.markdown(f"""
+    <div class="movie-card">
+        <div class="movie-title">{row['title']}</div>
+        {"<span class='" + badge_class + "'>" + sim_label + " match</span>" if sim_label else ""}
+        <div style="margin:.3rem 0;">{genres_html}</div>
+        <div style="color:#a0a0b8; font-size:.8rem;">
+            ⭐ {row.get('vote_average', 0):.1f} &nbsp;|&nbsp;
+            🎬 {row.get('director','—')}
+        </div>
+        <div style="margin-top:.4rem;">{why_html}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if show_rating_widget:
+        r_col1, r_col2 = st.columns([2, 1])
+        with r_col1:
+            user_rating = st.slider(
+                "Your rating",
+                1.0, 5.0, 3.0, 0.5,
+                key=f"rating_{card_id}",
+                label_visibility="collapsed",
             )
-            sim = row.get("similarity", row.get("cf_similarity", 0))
-            sim_label = f"{sim:.0%}" if sim > 0 else ""
-            badge_class = "sim-badge" if "similarity" in row else "cf-badge"
-
-            why_html = render_why(row["why"]) if "why" in row and row["why"] else ""
-
-            st.markdown(f"""
-            <div class="movie-card">
-                <div class="movie-title">{row['title']}</div>
-                {"<span class='" + badge_class + "'>" + sim_label + " match</span>" if sim_label else ""}
-                <div style="margin:.3rem 0;">{genres_html}</div>
-                <div style="color:#a0a0b8; font-size:.8rem;">
-                    ⭐ {row.get('vote_average', 0):.1f} &nbsp;|&nbsp;
-                    🎬 {row.get('director','—')}
-                </div>
-                <div style="margin-top:.4rem;">{why_html}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            if show_rating_widget:
-                r_col1, r_col2 = st.columns([2, 1])
-                with r_col1:
-                    user_rating = st.slider(
-                        "Your rating",
-                        1.0, 5.0, 3.0, 0.5,
-                        key=f"rating_{card_id}",
-                        label_visibility="collapsed",
-                    )
-                with r_col2:
-                    if st.button("Save ⭐", key=f"save_{card_id}"):
-                        mid = int(row.get("movie_id", 0))
-                        save_rating(mid, row["title"], user_rating)
-                        st.success("Saved!", icon="✅")
-                        st.cache_data.clear()
+        with r_col2:
+            if st.button("Save ⭐", key=f"save_{card_id}"):
+                mid = int(row.get("movie_id", 0))
+                save_rating(mid, row["title"], user_rating)
+                st.success("Saved!", icon="✅")
+                st.cache_data.clear()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -410,29 +357,25 @@ if selected_movie:
 
     st.markdown('<div class="section-header">📽️ Selected Movie</div>', unsafe_allow_html=True)
 
-    qcol1, qcol2 = st.columns([1, 5])
-    with qcol1:
-        st.markdown(poster_html(selected_movie, width=150), unsafe_allow_html=True)
-    with qcol2:
-        genre_html = " ".join(
-            f'<span class="genre-tag">{g}</span>'
-            for g in (movie_row.get("genres") or [])
-        )
-        cast_html = ", ".join((movie_row.get("cast") or [])[:5])
-        st.markdown(f"""
-        <div class="movie-card" style="height:100%;">
-            <div style="font-size:1.5rem; font-weight:900; color:#e8e8f8;">{selected_movie}</div>
-            <div style="margin:.4rem 0;">{genre_html}</div>
-            <div style="color:#a0a0b8; margin-bottom:.5rem;">
-                ⭐ {movie_row.get('vote_average',0):.1f} &nbsp;|&nbsp;
-                🎬 {movie_row.get('director','—')} &nbsp;|&nbsp;
-                👥 {cast_html}
-            </div>
-            <div style="color:#c0c0d8; font-size:.9rem; line-height:1.5;">
-                {(movie_row.get('overview','') or '')[:300]}{"..." if len(movie_row.get('overview','') or '') > 300 else ""}
-            </div>
+    genre_html = " ".join(
+        f'<span class="genre-tag">{g}</span>'
+        for g in (movie_row.get("genres") or [])
+    )
+    cast_html = ", ".join((movie_row.get("cast") or [])[:5])
+    st.markdown(f"""
+    <div class="movie-card">
+        <div style="font-size:1.5rem; font-weight:900; color:#e8e8f8; margin-bottom:.4rem;">{selected_movie}</div>
+        <div style="margin-bottom:.4rem;">{genre_html}</div>
+        <div style="color:#a0a0b8; margin-bottom:.5rem;">
+            ⭐ {movie_row.get('vote_average',0):.1f} &nbsp;|&nbsp;
+            🎬 {movie_row.get('director','—')} &nbsp;|&nbsp;
+            👥 {cast_html}
         </div>
-        """, unsafe_allow_html=True)
+        <div style="color:#c0c0d8; font-size:.9rem; line-height:1.6;">
+            {(movie_row.get('overview','') or '')[:300]}{"..." if len(movie_row.get('overview','') or '') > 300 else ""}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ── Content-Based Recommendations ──
     st.markdown(
