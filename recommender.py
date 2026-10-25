@@ -15,16 +15,15 @@ from feature_engineering import add_tags, vectorize
 
 class ContentRecommender:
     """
-    TF-IDF / CountVec cosine-similarity recommender with explainability.
+    TF-IDF cosine-similarity recommender with explainability.
     """
 
-    def __init__(self, df: pd.DataFrame, method: str = "tfidf"):
+    def __init__(self, df: pd.DataFrame):
         self.df = df.reset_index(drop=True)
-        self.method = method
-        self._build(method)
+        self._build()
 
-    def _build(self, method: str):
-        self.matrix, self.vectorizer, self.sim = vectorize(self.df, method=method)
+    def _build(self):
+        self.matrix, self.vectorizer, self.sim = vectorize(self.df)
         # Index title → row index for fast lookup
         self.title_to_idx = {
             title.lower(): i for i, title in enumerate(self.df["title"])
@@ -177,10 +176,10 @@ class CollaborativeRecommender:
 # Factory helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-def build_content_recommender(df: pd.DataFrame, method: str = "tfidf") -> ContentRecommender:
+def build_content_recommender(df: pd.DataFrame) -> ContentRecommender:
     """Add tags to df and return a ready ContentRecommender."""
     df = add_tags(df)
-    return ContentRecommender(df, method=method)
+    return ContentRecommender(df)
 
 
 def simulate_collab_recommender(df: pd.DataFrame, n_users: int = 200) -> CollaborativeRecommender:

@@ -1,7 +1,7 @@
 """
 evaluation.py
 Quick evaluation of content-based recommenders:
-  - Qualitative TF-IDF vs CountVectorizer comparison
+  - Qualitative TF-IDF evaluation
   - Precision@k (using genre overlap as a proxy for relevance)
 """
 
@@ -29,33 +29,29 @@ def precision_at_k(recommender, query_title: str, k: int = 10) -> float:
     return hits / k
 
 
-def compare_methods(query_movies: list[str], k: int = 10):
-    """Print a side-by-side comparison table for TF-IDF vs CountVec."""
+def evaluate_recommender(query_movies: list[str], k: int = 10):
+    """Print an evaluation table for TF-IDF Precision@k."""
     df = load_and_clean()
-    rec_tfidf = build_content_recommender(df, method="tfidf")
-    rec_count = build_content_recommender(df, method="count")
+    rec = build_content_recommender(df)
 
-    print(f"\n{'Movie':<35} {'P@k TF-IDF':>12} {'P@k Count':>12}")
-    print("-" * 62)
+    print(f"\n{'Movie':<35} {'P@k TF-IDF':>12}")
+    print("-" * 49)
     for movie in query_movies:
-        p_tfidf = precision_at_k(rec_tfidf, movie, k)
-        p_count = precision_at_k(rec_count, movie, k)
-        print(f"{movie:<35} {p_tfidf:>12.2f} {p_count:>12.2f}")
+        p_tfidf = precision_at_k(rec, movie, k)
+        print(f"{movie:<35} {p_tfidf:>12.2f}")
     print()
 
-    # Qualitative: show top-5 recs for each method for first movie
+    # Qualitative: show top-5 recs for first movie
     m = query_movies[0]
-    print(f"\n=== Top-5 recommendations for '{m}' ===\n")
-    print("── TF-IDF ──")
-    t = rec_tfidf.recommend(m, top_n=5)
+    print(f"\n=== Top-5 recommendations for '{m}' (TF-IDF) ===\n")
+    t = rec.recommend(m, top_n=5)
     if not t.empty:
         for _, r in t.iterrows():
             print(f"  {r['title']:<35} sim={r['similarity']:.3f}")
-    print("\n── CountVectorizer ──")
-    c = rec_count.recommend(m, top_n=5)
-    if not c.empty:
-        for _, r in c.iterrows():
-            print(f"  {r['title']:<35} sim={r['similarity']:.3f}")
+
+
+# Backward-compatible alias
+compare_methods = evaluate_recommender
 
 
 if __name__ == "__main__":
@@ -66,4 +62,4 @@ if __name__ == "__main__":
         "Interstellar",
         "The Godfather",
     ]
-    compare_methods(SAMPLE_MOVIES)
+    evaluate_recommender(SAMPLE_MOVIES)

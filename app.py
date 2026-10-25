@@ -20,7 +20,7 @@ from recommender import build_content_recommender, simulate_collab_recommender
 from ratings_store import save_rating, get_ratings, build_user_profile
 
 st.set_page_config(
-    page_title="CineMatch — AI Movie Recommender",
+    page_title="MovieRec — AI Movie Recommender",
     page_icon="🎬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -170,9 +170,9 @@ def load_data():
 
 
 @st.cache_resource(show_spinner=False)
-def get_content_rec(method="tfidf"):
+def get_content_rec():
     df = load_data()
-    return build_content_recommender(df, method=method)
+    return build_content_recommender(df)
 
 
 @st.cache_resource(show_spinner=False)
@@ -259,16 +259,7 @@ def render_movie_card(row: pd.Series, card_id: str, show_rating_widget: bool = T
 with st.sidebar:
     st.markdown("## ⚙️ Settings")
 
-    method = st.selectbox(
-        "Vectorization Method",
-        ["tfidf", "count"],
-        format_func=lambda x: "TF-IDF (recommended)" if x == "tfidf" else "CountVectorizer",
-        key="vec_method",
-    )
-
     top_n = st.slider("Number of Recommendations", 5, 20, 10, key="top_n")
-
-    show_collab = st.checkbox("Show Collaborative Filtering", value=True)
 
     st.markdown("---")
     st.markdown("### 📊 My Ratings")
@@ -284,7 +275,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(
-        "<div style='color:#6b6b8a; font-size:.75rem;'>CineMatch • Portfolio Project<br>"
+        "<div style='color:#6b6b8a; font-size:.75rem;'>MovieRec • Portfolio Project<br>"
         "TMDB 5000 Dataset</div>",
         unsafe_allow_html=True,
     )
@@ -295,7 +286,7 @@ with st.sidebar:
 
 st.markdown("""
 <div class="hero">
-    <h1>🎬 CineMatch</h1>
+    <h1>🎬 MovieRec</h1>
     <p>AI-powered movie recommendations — discover films tailored to your taste</p>
 </div>
 """, unsafe_allow_html=True)
@@ -323,7 +314,7 @@ if not (os.path.exists(movies_path) and os.path.exists(credits_path)):
 # Load data + build recommenders
 with st.spinner("🔄 Loading models..."):
     df = load_data()
-    rec = get_content_rec(method)
+    rec = get_content_rec()
 
 # ── Movie Search ──
 col_search, col_btn = st.columns([5, 1])
@@ -383,9 +374,7 @@ if selected_movie:
 
     # ── Content-Based Recommendations ──
     st.markdown(
-        f'<div class="section-header">🤖 Content-Based Recommendations '
-        f'<span style="font-size:.9rem; font-weight:400; color:#6b6b8a;">'
-        f'({method.upper()})</span></div>',
+        '<div class="section-header">🤖 Content-Based Recommendations</div>',
         unsafe_allow_html=True,
     )
 
@@ -412,47 +401,46 @@ if selected_movie:
                     render_movie_card(movie, card_id=f"cb_{movie['title']}")
 
     # ── Collaborative Filtering ──
-    if show_collab:
-        st.markdown(
-            '<div class="section-header">👥 Users Who Liked This Also Liked</div>',
-            unsafe_allow_html=True,
-        )
-        with st.spinner("Running collaborative filtering..."):
-            cf_rec = get_collab_rec()
-            query_id = int(movie_row.get("movie_id", 0))
-            cf_recs = cf_rec.recommend(query_id, top_n=6)
+    st.markdown(
+        '<div class="section-header">👥 Users Who Liked This Also Liked</div>',
+        unsafe_allow_html=True,
+    )
+    with st.spinner("Running collaborative filtering..."):
+        cf_rec = get_collab_rec()
+        query_id = int(movie_row.get("movie_id", 0))
+        cf_recs = cf_rec.recommend(query_id, top_n=6)
 
-        if cf_recs.empty:
-            st.info("Not enough data for collaborative recommendations for this movie.")
-        else:
-            cf_recs = cf_recs.merge(
-                df[["movie_id", "genres", "cast", "director", "vote_average"]],
-                on="movie_id", how="left"
-            )
-            cf_recs["why"] = cf_recs.apply(
-                lambda r: {
-                    "shared_genres": list(
-                        set(movie_row.get("genres", []) or [])
-                        & set(r.get("genres", []) or [])
-                    ),
-                    "shared_director": (
-                        movie_row.get("director")
-                        if movie_row.get("director") == r.get("director") else None
-                    ),
-                    "shared_cast": list(
-                        set(movie_row.get("cast", []) or [])
-                        & set(r.get("cast", []) or [])
-                    ),
-                    "shared_keywords": [],
-                },
-                axis=1,
-            )
-            cf_rows = [cf_recs.iloc[i:i+3] for i in range(0, len(cf_recs), 3)]
-            for row_group in cf_rows:
-                cols = st.columns(3)
-                for col, (_, movie) in zip(cols, row_group.iterrows()):
-                    with col:
-                        render_movie_card(movie, card_id=f"cf_{movie['title']}")
+    if cf_recs.empty:
+        st.info("Not enough data for collaborative recommendations for this movie.")
+    else:
+        cf_recs = cf_recs.merge(
+            df[["movie_id", "genres", "cast", "director", "vote_average"]],
+            on="movie_id", how="left"
+        )
+        cf_recs["why"] = cf_recs.apply(
+            lambda r: {
+                "shared_genres": list(
+                    set(movie_row.get("genres", []) or [])
+                    & set(r.get("genres", []) or [])
+                ),
+                "shared_director": (
+                    movie_row.get("director")
+                    if movie_row.get("director") == r.get("director") else None
+                ),
+                "shared_cast": list(
+                    set(movie_row.get("cast", []) or [])
+                    & set(r.get("cast", []) or [])
+                ),
+                "shared_keywords": [],
+            },
+            axis=1,
+        )
+        cf_rows = [cf_recs.iloc[i:i+3] for i in range(0, len(cf_recs), 3)]
+        for row_group in cf_rows:
+            cols = st.columns(3)
+            for col, (_, movie) in zip(cols, row_group.iterrows()):
+                with col:
+                    render_movie_card(movie, card_id=f"cf_{movie['title']}")
 
     # ── My Personalized Recommendations ──
     my_ratings = get_ratings()

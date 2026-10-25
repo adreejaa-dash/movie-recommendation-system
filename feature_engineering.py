@@ -1,13 +1,13 @@
 """
 feature_engineering.py
-Build weighted tag strings and vectorize with TF-IDF / CountVectorizer.
+Build weighted tag strings and vectorize with TF-IDF.
 """
 
 import re
 import string
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -92,32 +92,22 @@ def add_tags(df: pd.DataFrame) -> pd.DataFrame:
 
 def vectorize(
     df: pd.DataFrame,
-    method: str = "tfidf",
     max_features: int = 10_000,
 ) -> tuple:
     """
-    Vectorize the 'tags' column.
+    Vectorize the 'tags' column using TF-IDF.
 
     Args:
-        method: 'tfidf' or 'count'
         max_features: vocabulary size cap
 
     Returns:
         (matrix, vectorizer, similarity_matrix)
     """
-    if method == "tfidf":
-        vec = TfidfVectorizer(
-            max_features=max_features,
-            ngram_range=(1, 2),
-            min_df=2,
-        )
-    else:
-        vec = CountVectorizer(
-            max_features=max_features,
-            ngram_range=(1, 2),
-            min_df=2,
-        )
-
+    vec = TfidfVectorizer(
+        max_features=max_features,
+        ngram_range=(1, 2),
+        min_df=2,
+    )
     matrix = vec.fit_transform(df["tags"])
     sim = cosine_similarity(matrix, matrix)
     return matrix, vec, sim
@@ -128,5 +118,5 @@ if __name__ == "__main__":
     df = load_and_clean()
     df = add_tags(df)
     print("Sample tags:", df["tags"].iloc[0][:200])
-    _, _, sim = vectorize(df, method="tfidf")
+    _, _, sim = vectorize(df)
     print("Similarity matrix shape:", sim.shape)

@@ -6,7 +6,7 @@ print(f"Loaded {len(df)} movies from real Kaggle data")
 print(f"Columns: {list(df.columns)}")
 print()
 
-rec = build_content_recommender(df, method="tfidf")
+rec = build_content_recommender(df)
 results = rec.recommend("The Dark Knight", top_n=10)
 print('Top 10 recs for "The Dark Knight":')
 print(f"{'#':<4} {'Title':<45} {'Sim':>6}  Shared Features")

@@ -1,4 +1,4 @@
-# 🎬 CineMatch — AI Movie Recommendation System
+# 🎬 MovieRec — AI Movie Recommendation System
 
 > A portfolio-grade content-based + collaborative filtering recommender with a Streamlit UI, explainable recommendations, and user rating personalization.
 
@@ -34,7 +34,7 @@ Recommending movies users will actually enjoy is a core challenge in information
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  CineMatch Pipeline                      │
+│                  MovieRec Pipeline                       │
 │                                                         │
 │  TMDB CSVs ──► data_preprocessing.py                   │
 │                     │                                   │
@@ -42,10 +42,9 @@ Recommending movies users will actually enjoy is a core challenge in information
 │              feature_engineering.py                     │
 │          (weighted tags: dir×3, genre×2, cast×2)        │
 │                     │                                   │
-│            ┌────────┴────────┐                          │
-│            ▼                 ▼                          │
-│        TF-IDF           CountVectorizer                 │
-│            └────────┬────────┘                          │
+│                     ▼                                   │
+│             TF-IDF Vectorizer                           │
+│                     │                                   │
 │                     ▼                                   │
 │              recommender.py                             │
 │         ┌───────────┴───────────┐                       │
@@ -140,10 +139,10 @@ python3 evaluation.py
 | File | Purpose |
 |------|---------|
 | `data_preprocessing.py` | Load, merge, parse, and clean TMDB CSVs (4,803 movies) |
-| `feature_engineering.py` | Build weighted tag strings; TF-IDF / CountVec vectorization |
+| `feature_engineering.py` | Build weighted tag strings; TF-IDF vectorization |
 | `recommender.py` | `ContentRecommender` + `CollaborativeRecommender` + explainability |
 | `ratings_store.py` | SQLite ratings persistence + user preference profile builder |
-| `evaluation.py` | Genre-overlap Precision@k; TF-IDF vs CountVec comparison |
+| `evaluation.py` | Genre-overlap Precision@k; TF-IDF evaluation |
 | `app.py` | Streamlit UI — search, recommendations, ratings, personalization |
 | `generate_sample_data.py` | Generates 30-movie test CSVs (dev/CI use only) |
 
@@ -153,7 +152,7 @@ python3 evaluation.py
 
 - ✅ **4,803 movies** from the real TMDB 5000 Kaggle dataset
 - ✅ **Explainable recommendations** — shows shared genres, cast, director, keywords per result
-- ✅ **Dual vectorization** — switch between TF-IDF and CountVectorizer in the sidebar
+- ✅ **TF-IDF vectorization** — n-gram (1, 2) text representation for content-based matching
 - ✅ **Collaborative filtering** — item-based CF via cosine similarity on ratings matrix
 - ✅ **User ratings** — 1–5 star ratings stored in SQLite; builds a taste profile
 - ✅ **Personalization** — re-ranks content-based results using your rating history
@@ -167,12 +166,12 @@ python3 evaluation.py
 
 Genre-overlap Precision@10 (higher = more genre-consistent):
 
-| Movie | TF-IDF P@10 | CountVec P@10 |
-|-------|-------------|---------------|
-| The Dark Knight | 1.00 | 1.00 |
-| Inception | 1.00 | 1.00 |
-| The Godfather | 1.00 | 1.00 |
-| Interstellar | 1.00 | 1.00 |
+| Movie | TF-IDF P@10 |
+|-------|-------------|
+| The Dark Knight | 1.00 |
+| Inception | 1.00 |
+| The Godfather | 1.00 |
+| Interstellar | 1.00 |
 
 Run `python3 evaluation.py` to reproduce.
 
@@ -189,4 +188,3 @@ Run `python3 evaluation.py` to reproduce.
 | User authentication & multi-user profiles | Medium | Medium |
 | TMDB API for full metadata enrichment | Low | Medium |
 | Popularity decay / freshness weighting | Low | Low |
-| A/B test TF-IDF vs CountVec recommendations | Low | Low |
